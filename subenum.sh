@@ -10,8 +10,8 @@ blue="\e[34m"
 end="\e[0m"
 VERSION="2024-12-28"
 
-APIKEYVirustotal="0000000000000000000000"
-APIKEYSecTrails="00000000000000000000000"
+APIKEYVirustotal=""
+APIKEYSecTrails=""
 
 
 PRG=${0##*/}
@@ -77,6 +77,36 @@ spinner(){
 }
 
 
+virustotal() {
+    if [ -n "$APIKEYVirustotal" ]; then
+        [ "$silent" == True ] && curl -sk "https://www.virustotal.com/vtapi/v2/domain/report?apikey=$APIKEYVirustotal&domain=$domain" | jq -r '.subdomains[]' | sort -u | anew subenum-$domain.txt  || {
+            [[ ${PARALLEL} == True ]] || { spinner "${bold}VirusTotal${end}" &
+                PID="$!"
+            }
+            curl -sk "https://www.virustotal.com/vtapi/v2/domain/report?apikey=$APIKEYVirustotal&domain=$domain" | jq -r '.subdomains[]' | sort -u > tmp-virustotal-$domain
+            [[ ${PARALLEL} == True ]] || kill ${PID} 2>/dev/null
+            echo -e "$bold[*] VirusTotal$end: $(wc -l < tmp-virustotal-$domain)"
+        }
+    else
+        echo -e "$red$bold[*] VirusTotal: API-Key Not Set"
+    fi
+}
+
+securitytrails() {
+    if [ -n "$APIKEYSecTrails" ]; then
+        [ "$silent" == True ] && curl -sk "https://api.securitytrails.com/v1/domain/$domain/subdomains?children_only=false&include_inactive=true" --header "APIKEY: $APIKEYSecTrails" --header "accept: application/json" | jq -r '.subdomains[]' | sed "s/$/.$domain/" | sort -u | anew sectrails-$domain.txt  || {
+            [[ ${PARALLEL} == True ]] || { spinner "${bold}SecurityTrails${end}" &
+                PID="$!"
+            }
+            curl -sk "https://api.securitytrails.com/v1/domain/$domain/subdomains?children_only=false&include_inactive=true" --header "APIKEY: $APIKEYSecTrails" --header 'accept: application/json' | jq -r '.subdomains[]' | sed "s/$/.$domain/" | sort -u > tmp-securitytrails-$domain
+            [[ ${PARALLEL} == True ]] || kill ${PID} 2>/dev/null
+            echo -e "$bold[*] SecurityTrails$end: $(wc -l < tmp-securitytrails-$domain)"
+        }
+    else
+        echo -e "$red$bold[*] SecurityTrails: API-Key Not Set"
+    fi        
+}
+
 wayback() {
 	[ "$silent" == True ] && curl -sk "http://web.archive.org/cdx/search/cdx?url=*.$domain&output=txt&fl=original&collapse=urlkey&page=" | awk -F/ '{gsub(/:.*/, "", $3); print $3}' | sort -u | anew subenum-$domain.txt  || {
 		[[ ${PARALLEL} == True ]] || { spinner "${bold}WayBackMachine${end}" &
@@ -85,28 +115,6 @@ wayback() {
 		curl -sk "http://web.archive.org/cdx/search/cdx?url=*.$domain&output=txt&fl=original&collapse=urlkey&page=" | awk -F/ '{gsub(/:.*/, "", $3); print $3}' | sort -u > tmp-wayback-$domain
 		[[ ${PARALLEL} == True ]] || kill ${PID} 2>/dev/null
 		echo -e "$bold[*] WayBackMachine$end: $(wc -l < tmp-wayback-$domain)"
-	}
-}
-
-virustotal() {
-	[ "$silent" == True ] && curl -sk "https://www.virustotal.com/vtapi/v2/domain/report?apikey=$APIKEYVirustotal&domain=$domain" | jq -r '.subdomains[]' | sort -u | anew subenum-$domain.txt  || {
-		[[ ${PARALLEL} == True ]] || { spinner "${bold}VirusTotal${end}" &
-			PID="$!"
-		}
-		curl -sk "https://www.virustotal.com/vtapi/v2/domain/report?apikey=$APIKEYVirustotal&domain=$domain" | jq -r '.subdomains[]' | sort -u > tmp-virustotal-$domain
-		[[ ${PARALLEL} == True ]] || kill ${PID} 2>/dev/null
-		echo -e "$bold[*] VirusTotal$end: $(wc -l < tmp-virustotal-$domain)"
-	}
-}
-
-securitytrails() {
-	[ "$silent" == True ] && curl -sk "https://api.securitytrails.com/v1/domain/$domain/subdomains?children_only=false&include_inactive=true" --header "APIKEY: $APIKEYSecTrails" --header "accept: application/json" | jq -r '.subdomains[]' | sed "s/$/.$domain/" | sort -u | anew sectrails-$domain.txt  || {
-		[[ ${PARALLEL} == True ]] || { spinner "${bold}SecurityTrails${end}" &
-			PID="$!"
-		}
-		curl -sk "https://api.securitytrails.com/v1/domain/$domain/subdomains?children_only=false&include_inactive=true" --header "APIKEY: $APIKEYSecTrails" --header 'accept: application/json' | jq -r '.subdomains[]' | sed "s/$/.$domain/" | sort -u > tmp-securitytrails-$domain
-		[[ ${PARALLEL} == True ]] || kill ${PID} 2>/dev/null
-		echo -e "$bold[*] SecurityTrails$end: $(wc -l < tmp-securitytrails-$domain)"
 	}
 }
 
@@ -283,9 +291,9 @@ Main() {
 				parallel -j7 ::: wayback virustotal securitytrails urlscan crt abuseipdb Findomain Subfinder Amass Assetfinder
 				kill ${PID}
 			} || {
-				wayback
-                virustotal
+				virustotal
                 securitytrails
+                wayback
                 urlscan
 				crt
 				abuseipdb
