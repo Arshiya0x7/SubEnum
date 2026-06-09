@@ -10,8 +10,8 @@ blue="\e[34m"
 end="\e[0m"
 VERSION="2024-12-28"
 
-APIKEYVirustotal="000000000000000000000000000"
-APIKEYSecTrails="0000000000000000000000000000"
+APIKEYVirustotal="0000000000000000000000"
+APIKEYSecTrails="00000000000000000000000"
 
 
 PRG=${0##*/}
@@ -37,7 +37,7 @@ Usage(){
 	\r    -v, --version      - Displays the version and exit.
 
 	\r# ${bold}${blue}Available Tools${end}:
-	\r	  wayback,abuseipdb,Findomain,Subfinder,Amass,Assetfinder
+	\r	  wayback,crt,abuseipdb,Findomain,Subfinder,Amass,Assetfinder
 
 	\r# ${bold}${blue}Examples${end}:
 	\r    - To use a specific Tool(s):
@@ -124,6 +124,17 @@ urlscan() {
 
 		[[ ${PARALLEL} == True ]] || kill ${PID} 2>/dev/null
 		echo -e "$bold[*] urlscan$end: $(wc -l < tmp-urlscan-$domain)"
+	}
+}
+
+crt() {
+	[ "$silent" == True ] && curl -s "https://crt.sh/?q=.$domain&output=json" -H "user-agent: firefox" | jq -r '.[].name_value' | sed 's/\*\.//g' | sort -u | anew subenum-$domain.txt || {
+		[[ ${PARALLEL} == True ]] || { spinner "${bold}crt.sh${end}" &
+			PID="$!"
+		}
+		curl -s "https://crt.sh/?q=.$domain&output=json" -H "user-agent: firefox" | jq -r '.[].name_value' | sed 's/\*\.//g' | sort -u > tmp-crt-$domain
+		[[ ${PARALLEL} == True ]] || kill ${PID} 2>/dev/null
+		echo -e "$bold[*] crt$end: $(wc -l < tmp-crt-$domain)" 
 	}
 }
 
@@ -234,9 +245,9 @@ LIST() {
 			[[ ${PARALLEL} == True ]] && {
 				spinner "Reconnaissance" &
 				PID="$!"
-				export -f wayback virustotal securitytrails urlscan abuseipdb Findomain Subfinder Amass Assetfinder spinner
+				export -f wayback virustotal securitytrails urlscan crt abuseipdb Findomain Subfinder Amass Assetfinder spinner
 				export domain silent bold end
-				parallel -j7 ::: wayback virustotal securitytrails urlscan abuseipdb Findomain Subfinder Amass Assetfinder
+				parallel -j7 ::: wayback virustotal securitytrails urlscan crt abuseipdb Findomain Subfinder Amass Assetfinder
 				kill ${PID}
 				[[ $out != False ]] && OUT $out || OUT
 			} || {
@@ -244,6 +255,7 @@ LIST() {
                 virustotal
                 securitytrails
                 urlscan
+				crt
 				abuseipdb
 				Findomain 
 				Subfinder 
@@ -266,15 +278,16 @@ Main() {
 			[[ ${PARALLEL} == True ]] && {
 				spinner "Reconnaissance" &
 				PID="$!"
-				export -f wayback virustotal securitytrails urlscan abuseipdb Findomain Subfinder Amass Assetfinder spinner
+				export -f wayback virustotal securitytrails urlscan crt abuseipdb Findomain Subfinder Amass Assetfinder spinner
 				export domain silent bold end
-				parallel -j7 ::: wayback virustotal securitytrails urlscan abuseipdb Findomain Subfinder Amass Assetfinder
+				parallel -j7 ::: wayback virustotal securitytrails urlscan crt abuseipdb Findomain Subfinder Amass Assetfinder
 				kill ${PID}
 			} || {
 				wayback
                 virustotal
                 securitytrails
                 urlscan
+				crt
 				abuseipdb
 				Findomain 
 				Subfinder
@@ -312,6 +325,7 @@ list=(
     virustotal
     securitytrails
     urlscan
+	crt
 	abuseipdb
 	Findomain 
 	Subfinder 
