@@ -53,6 +53,12 @@ Dnsx() {
 	printf "[+] Dnsx Installed !.\n"
 }
 
+psql() {
+	printf "                                \r"
+	sudo apt install postgresql-client &>/dev/null
+	printf "[+] postgresql-client Installed !.\n"
+}
+
 Parallel() {
 	printf "                                \r"
 	sudo apt-get install parallel -y
@@ -73,6 +79,7 @@ hash subfinder 2>/dev/null && printf "[!] subfinder is already installed.\n" || 
 hash amass 2>/dev/null && printf "[!] Amass is already installed.\n" || { printf "[+] Installing Amass!" && Amass; }
 hash assetfinder 2>/dev/null && printf "[!] Assetfinder is already installed.\n" || { printf "[+] Installing Assetfinder!" && Assetfinder; }
 hash dnsx 2>/dev/null && printf "[!] Dnsx is already installed.\n" || { printf "[+] Installing Dnsx!" && Dnsx; }
+hash psql 2>/dev/null && printf "[!] postgresql-client is already installed.\n" || { printf "[+] Installing postgresql-client!" && psql; }
 hash parallel 2>/dev/null && printf "[!] Parallel is already installed.\n" || { printf "[+] Installing Parallel!" && Parallel; }
 hash anew 2>/dev/null && printf "[!] Anew is already installed.\n" || { printf "[+] Installing Anew!" && Anew; }
 
@@ -85,6 +92,7 @@ list=(
 	dnsx
 	parallel
  	anew
+	psql
 	)
 
 r="\e[31m"
